@@ -1,0 +1,15 @@
+body {
+
+}
+
+#canvas_img {
+	border: 4px outset red;
+}
+
+#canvas_best {
+	border: 4px outset green;
+}
+
+#canvas_realtime {
+	border: 4px outset blue;
+}
