@@ -18,6 +18,7 @@
  * @author: Ajay Gopinath <ajgopi124(at)gmail(dot)com>
  */
 
+
 var img = new Image();
 img.src = "../assets/chrome-logo.png";
 
@@ -35,10 +36,16 @@ var ctxRlt = null;
 var ORIG_DATA = null;
 var ORIG_PIXELS = null;
 
-var draftData = null;
-var draftPixels = null;
+var NUM_ORGANISMS = 50;
+var NUM_VERTICES = 6;
+
+var LOG_WINDOW = document.getElementById("logWindow");
 
 function changeSourceImage(url) {
+	if(url === null || url.toString().length === 0 || url.toString().indexOf("http://", 0) === -1) {
+		warn("cannot change source to invalid image: " + url);
+		return;
+	}
 	img.src = url;
 	
 	img.onload = function() {
@@ -57,7 +64,11 @@ function initCanvases() {
 	ctxRlt = CANVAS_REALTIME.getContext('2d');
 }
 
-function initImage() {	
+function initImage() {
+	ctxImg.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+	ctxBest.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+	ctxRlt.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+
 	IMAGE_WIDTH = img.width;
 	IMAGE_HEIGHT = img.height;
 	
@@ -66,13 +77,15 @@ function initImage() {
 
 	CANVAS_BEST.setAttribute('width', IMAGE_WIDTH);
 	CANVAS_BEST.setAttribute('height', IMAGE_HEIGHT);
-	
+
 	CANVAS_REALTIME.setAttribute('width', IMAGE_WIDTH);
 	CANVAS_REALTIME.setAttribute('height', IMAGE_HEIGHT);
 
+	
 	ctxImg.drawImage(img, 0, 0);
 
 	ORIG_DATA = ctxImg.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+
 	ORIG_PIXELS = ORIG_DATA.data;
 }
 
@@ -83,8 +96,8 @@ function init() {
 }
 
 function start() {	
-	draftData = ctxBest.createImageData(IMAGE_WIDTH, IMAGE_HEIGHT);
-	draftPixels = draftData.data;
+	var draftData = ctxBest.createImageData(IMAGE_WIDTH, IMAGE_HEIGHT);
+	var draftPixels = draftData.data;
 	
 	for(var a = 0, b = draftPixels.length; a < b; a+=4) {
         draftPixels[a]   = ORIG_PIXELS[a];    // red
@@ -94,6 +107,23 @@ function start() {
 	};
 	
 	ctxBest.putImageData(draftData, 0, 0);
+
+	var currGeneration = new Generation();
+	var bestGeneration = null;
+	
+	currGeneration.initializeRandomOrganisms();
+	currGeneration.drawOrganisms(ctxRlt);
+	
+	/*var bestFitness = 0.0;
+	var currGenerationCount = 0;
+	
+	makeNewGeneration();
+	evaluate();
+	
+	while(bestFitness <= 0.75) {
+		
+		currGenerationCount++;
+	}*/
 	
 	/*var resultBuf = new ArrayBuffer(draftData.data.length);
 	var resultBuf8 = new Uint8ClampedArray(resultBuf);
@@ -112,12 +142,120 @@ function start() {
 	}
 
 	draftData.data.set(resultBuf8);
-
-	
 	*/
 
 }
 
+function setBestGeneration(bestGeneration) {
+	for(var i = 0; i < NUM_ORGANISMS; i++) {
+		
+	}
+}
+
+function Generation() {
+	this.organisms = [];
+}
+
+Generation.prototype.initializeRandomOrganisms = function() {
+	for(var i = 0; i < NUM_ORGANISMS; i++) {
+		this.organisms[i] = new Organism();
+		this.organisms[i].randomizeAttributes("all");
+	}
+}
+
+Generation.prototype.getRandomOrganism = function() {
+	return organisms[Math.random() * organisms.length | 0];
+}
+
+Generation.prototype.drawOrganisms = function(context) {
+	// for loop reversed for performance
+	for (var i = NUM_ORGANISMS - 1; i >= 0; i--){
+	  this.organisms[i].draw(context);
+	};
+}
+
+function Organism() {
+	this.pointsX = [];
+	this.pointsY = [];
+	this.r = 0;
+	this.g = 0;
+	this.b = 0;
+}
+
+Organism.prototype.randomizeAttributes = function(attributes) {
+	switch(attributes) {
+		case "r":
+			this.r = (Math.random() * 255 | 0);
+			break;
+		case "g":
+			this.g = (Math.random() * 255 | 0);
+			break;
+		case "b":
+			this.b = (Math.random() * 255 | 0);
+			break;
+		case "pointsX":
+			this.pointsX.length = [];
+			this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
+			break;
+		case "pointsY":
+			this.pointsY.length = [];
+			this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+			break;
+		case "allPoints":
+			this.pointsX.length = [];
+			this.pointsY.length = [];
+			this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
+			this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+			break;
+		case "all":
+			this.r = (Math.random() * 255 | 0);
+			this.g = (Math.random() * 255 | 0);
+			this.b = (Math.random() * 255 | 0);
+	
+			// clear the arrays
+			this.pointsX.length = [];
+			this.pointsY.length = [];
+			
+			for(var i = 0; i < NUM_VERTICES; i++) {
+				this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
+				this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+			}
+
+			break;
+		default: 
+			err("attributes to randomize not found: " + attribute);
+	}
+}
+
+Organism.prototype.draw = function(context) {
+	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + ",0.3)";
+	
+	context.beginPath();
+	
+	context.moveTo(this.pointsX[0], this.pointsY[0]);
+	
+	var pointsLength = NUM_VERTICES;
+	
+	for (var i = 1; i < pointsLength - 1; i++){
+	  context.lineTo(this.pointsX[i], this.pointsY[i]);
+	};
+	
+	context.closePath();
+	context.fill();
+}
+
+
+function debug(s) {
+	LOG_WINDOW.value += (s + "\n");
+}
+
+function err(s) {
+	LOG_WINDOW.value += ("error: " + s + "\n");
+}
+
+function warn(s) {
+	LOG_WINDOW.value += ("warning: " + s + "\n");
+}
 window.onload = function() {
 	init();
 }
