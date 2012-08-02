@@ -27,7 +27,7 @@
 		Remove this if you use the .htaccess -->
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 
-		<title>genetic_poly2img</title>
+		<title>genetic_poly2img - Ajay Gopinath</title>
 		<meta name="description" content="" />
 		<meta name="author" content="Ajay" />
 
@@ -44,7 +44,7 @@
 
 		<div>
 			<header>
-				<h1>genetic_poly2img</h1>
+				<h1>genetic_poly2img - Ajay Gopinath &laquo;ajgopi124(at)gmail(dot)com&raquo;</h1>
 			</header>
 			
 			<div>
@@ -63,12 +63,13 @@
 						HTML5 is not supported in your browser!
 					</canvas>
 					
-					<textarea id="logWindow" cols=80 rows=12 wrap='off' readonly="true"></textarea>
+					<textarea id="logWindow" cols=80 rows=12 wrap='off' readonly="true" title="Log window">Logging window...</textarea>
 			</div>
 			
 			<div>
 					<input id="imgLoc" type="text" name="Specify location of image: "/>
 					<input id="setImgBtn" type="submit" value="Set image" onclick="setImageURL(imgLoc.value)"/>
+					<input id="startPauseToggle" type="submit" value="Start evolution" onclick="toggleEvolution()"/>
 			</div>
 		</div>
 	</body>

@@ -38,19 +38,17 @@ var ORIG_PIXELS = null;
 
 var LOG_WINDOW = null;
 
-function changeSourceImage(url) {
-	if(url === null || url.toString().length === 0 || url.toString().indexOf("http://", 0) === -1) {
-		warn("cannot change source to invalid image: " + url);
-		return;
-	}
-	img.src = url;
-	
-	img.onload = function() {
-		initImage();
-		start();
-	}
-}
+var BEST_FITNESS = -1;
+var GENERATION_COUNT = -1;
 
+var ORGANISMS_PER_GENERATION = -1;
+var ORGANISM_INDEX = -1;
+var CURR_ORGANISMS = null;
+
+var EVOLVE_INTERVAL_ID = null;
+var IS_EVOLVING = false;
+
+// INITIALIZATION FUNCTIONS
 function initCanvases() {
 	CANVAS_IMG = document.getElementById('canvas_img');
 	CANVAS_BEST = document.getElementById('canvas_best');
@@ -85,75 +83,68 @@ function initImage() {
 	ORIG_PIXELS = ORIG_DATA.data;
 }
 
+function initOrganisms() {
+	BEST_FITNESS = 1.0; // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
+	GENERATION_COUNT = 0;
+	ORGANISMS_PER_GENERATION = 100;
+	ORGANISM_INDEX = 0;
+	CURR_ORGANISMS = [];
+	
+	for(var i = 0; i < ORGANISMS_PER_GENERATION; i++) {
+		CURR_ORGANISMS[i] = new Organism();
+		CURR_ORGANISMS[i].initializeRandomGenome();
+	}
+}
+
 function init() {
 	LOG_WINDOW = document.getElementById("logWindow")
 	initCanvases();
 	initImage();
-	start();
+	initOrganisms();
 }
 
-function start() {	
-
-	/*for(var a = 0, b = draftPixels.length; a < b; a+=4) {
-        draftPixels[a]   = ORIG_PIXELS[a];    // red
-        draftPixels[a+1] = ORIG_PIXELS[a+1];    // green
-        draftPixels[a+2] = ORIG_PIXELS[a+2];    // blue
-        draftPixels[a+3] = ORIG_PIXELS[a+3]- 128;      // alpha
-	};
-	ctxBest.putImageData(draftData, 0, 0);*/
-	
-	//alert("step 1");
-	var currOrganism = new Organism();
-	//alert("step 2");
-	var bestOrganism = null;
-	//alert("step 3");
-	currOrganism.initializeRandomGenome();
-	//alert("step 4");
-	currOrganism.drawGenome(ctxRlt);
-	calculateAndHandleFitness(currOrganism);
-	//alert("step 5");
-	//alert(calculateAndHandleFitness(currOrganism));
-	//alert("step 6");
-	/*var bestFitness = 0.0;
-	var generationCount = 0;
-	var ORGANISMS_PER_GENERATION = 100;
-	
-	var currGeneration = [];
-
-	for(var i = 0; i < ORGANISMS_PER_GENERATION; i++) {
-		currGeneration[i] = new Organism();
-		currGeneration[i].initializeRandomGenome();
-	}
-	
-	while(bestFitness <= 0.75) {
-		setBestGeneration(currOrganism, bestOrganism);
-		
-		generationCount++;
-		
-	}*/
-	
-	/*var resultBuf = new ArrayBuffer(draftData.data.length);
-	var resultBuf8 = new Uint8ClampedArray(resultBuf);
-	var resultBuf32 = new Uint32Array(resultBuf8);
-
-	var sourceBuf = new ArrayBuffer(origData.data.length);
-	var sourceBuf8 = new Uint8ClampedArray(sourceBuf);
-	var sourceBuf32 = new Uint32Array(sourceBuf8);
-	
-	for (var y = 0; y < IMAGE_HEIGHT; ++y) {
-	    for (var x = 0; x < IMAGE_WIDTH; ++x) {
-	    	  var index = (y * IMAGE_WIDTH + x);
-	    	  alert(sourceBuf32[index]);
-	          resultBuf32[index] = sourceBuf32[index];
-	    }
-	}
-
-	draftData.data.set(resultBuf8);
-	*/
-
+function startEvolution() {
+	IS_EVOLVING = true;
+	debug("starting evolution");
+	EVOLVE_INTERVAL_ID = setInterval("evolveOrganisms();", 0);
 }
 
-function calculateAndHandleFitness(organism) {
+function pauseEvolution() {
+	IS_EVOLVING = false;	
+	debug("pausing evolution with best fitness " + BEST_FITNESS);
+	clearInterval(EVOLVE_INTERVAL_ID);
+}
+
+// ALGORITHM CORE FUNCTIONS
+function evolveOrganisms() {
+	var currentOrganism = CURR_ORGANISMS[ORGANISM_INDEX];
+	
+	drawOrganism(currentOrganism);
+	calculateFitness(currentOrganism);
+	
+	if(currentOrganism.fitness < BEST_FITNESS) {
+		BEST_FITNESS = currentOrganism.fitness;
+		setFittestOrganism(currentOrganism);
+		debug("!!reached new best fitness: " + BEST_FITNESS);
+	}
+	
+	if(BEST_FITNESS <= 0.25) {
+		clearInterval(EVOLVE_INTERVAL_ID);
+		debug("!!reached optimum fitness " + BEST_FITNESS);
+		alert("!!reached optimum fitness " + BEST_FITNESS);
+		return;
+	}
+	
+	if(ORGANISM_INDEX == ORGANISMS_PER_GENERATION - 1) { // if the current index has reached the end of the array, move on to next generation 
+		GENERATION_COUNT++;
+		ORGANISM_INDEX = 0;
+		debug("moving on to next generation... "+ GENERATION_COUNT);
+	} else {
+		ORGANISM_INDEX++;
+	}
+}
+
+function calculateFitness(organism) {
 	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 	var draftPixels = draftData.data;
 	
@@ -167,18 +158,17 @@ function calculateAndHandleFitness(organism) {
        total_difference += Math.abs(draftPixels[a+2] - ORIG_PIXELS[a+2]);    // difference in blue component of the current pixel
 	};
 	
-	debug("total diff: " + total_difference);
-	
+	//debug("total diff: " + total_difference);
 	var normalized_fitness = (((1-0) * (total_difference - RANGE_MIN)) / (RANGE_MAX - RANGE_MIN)) + 0;
+	//debug("normalized fitness: " + normalized_fitness);
 	
-	debug("normalized fitness: " + normalized_fitness);
-	
+	organism.fitness = normalized_fitness;
 	return normalized_fitness;
 }
 
-function setBestOrganism(bestOrganism) {
-	dest = null; // clears the previous best generation
-	dest.drawGenome(ctxBest);
+function drawOrganism(organism) {
+	clearCanvas(ctxRlt);
+	organism.drawGenome(ctxRlt);
 }
 
 function Organism() {
@@ -290,6 +280,40 @@ Chromosome.prototype.draw = function(context) {
 }
 
 
+// UTILITY/CONVENIENCE/OTHER functions
+function setFittestOrganism(newBestOrganism) {
+	clearCanvas(ctxBest);
+	newBestOrganism.drawGenome(ctxBest);
+}
+
+function clearCanvas(context){
+	context.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+}
+
+function toggleEvolution(){
+	IS_EVOLVING = !IS_EVOLVING;
+	
+	if(!IS_EVOLVING) {
+		startPauseToggle.value = "Start evolution";
+		pauseEvolution();
+	} else {
+		startPauseToggle.value = "Pause evolution";
+		startEvolution();
+	}
+}
+
+function changeSourceImage(url) {
+	if(url === null || url.toString().length === 0 || url.toString().indexOf("http://", 0) === -1) {
+		warn("cannot change source to invalid image: " + url);
+		return;
+	}
+	img.src = url;
+	
+	img.onload = function() {
+		restartEvolution
+	}
+}
+
 function debug(s) {
 	LOG_WINDOW.value += ("debug: " + s + "\n");
 }
@@ -301,6 +325,9 @@ function err(s) {
 function warn(s) {
 	LOG_WINDOW.value += ("warning: " + s + "\n");
 }
+
+
+// PROGRAM INITIALIZATION
 window.onload = function() {
 	init();
 }

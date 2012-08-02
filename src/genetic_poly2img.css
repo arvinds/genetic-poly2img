@@ -19,17 +19,22 @@
  */
 
 body {
-
+	font:  sans-serif;
 }
 
 #canvas_img {
-	border: 4px outset red;
+	border: 4px inset red;
 }
 
 #canvas_best {
-	border: 4px outset green;
+	border: 4px inset green;
 }
 
 #canvas_realtime {
-	border: 4px outset blue;
+	border: 4px inset blue;
+} 
+
+#logWindow { 
+	border: 5px outset yellow;
+    width: 30em;height: 7em;font: inherit;
 }
