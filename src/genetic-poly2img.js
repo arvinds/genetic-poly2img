@@ -36,9 +36,7 @@ var ctxRlt = null;
 var ORIG_DATA = null;
 var ORIG_PIXELS = null;
 
-
-
-var LOG_WINDOW = document.getElementById("logWindow");
+var LOG_WINDOW = null;
 
 function changeSourceImage(url) {
 	if(url === null || url.toString().length === 0 || url.toString().indexOf("http://", 0) === -1) {
@@ -88,37 +86,51 @@ function initImage() {
 }
 
 function init() {
+	LOG_WINDOW = document.getElementById("logWindow")
 	initCanvases();
 	initImage();
 	start();
 }
 
 function start() {	
-	var draftData = ctxBest.createImageData(IMAGE_WIDTH, IMAGE_HEIGHT);
-	var draftPixels = draftData.data;
-	
-	for(var a = 0, b = draftPixels.length; a < b; a+=4) {
+
+	/*for(var a = 0, b = draftPixels.length; a < b; a+=4) {
         draftPixels[a]   = ORIG_PIXELS[a];    // red
         draftPixels[a+1] = ORIG_PIXELS[a+1];    // green
         draftPixels[a+2] = ORIG_PIXELS[a+2];    // blue
         draftPixels[a+3] = ORIG_PIXELS[a+3]- 128;      // alpha
 	};
+	ctxBest.putImageData(draftData, 0, 0);*/
 	
-	ctxBest.putImageData(draftData, 0, 0);
-	
+	//alert("step 1");
 	var currOrganism = new Organism();
+	//alert("step 2");
 	var bestOrganism = null;
-	
+	//alert("step 3");
 	currOrganism.initializeRandomGenome();
+	//alert("step 4");
 	currOrganism.drawGenome(ctxRlt);
-	
+	calculateAndHandleFitness(currOrganism);
+	//alert("step 5");
+	//alert(calculateAndHandleFitness(currOrganism));
+	//alert("step 6");
 	/*var bestFitness = 0.0;
 	var generationCount = 0;
+	var ORGANISMS_PER_GENERATION = 100;
+	
+	var currGeneration = [];
+
+	for(var i = 0; i < ORGANISMS_PER_GENERATION; i++) {
+		currGeneration[i] = new Organism();
+		currGeneration[i].initializeRandomGenome();
+	}
 	
 	while(bestFitness <= 0.75) {
 		setBestGeneration(currOrganism, bestOrganism);
+		
 		generationCount++;
-	}
+		
+	}*/
 	
 	/*var resultBuf = new ArrayBuffer(draftData.data.length);
 	var resultBuf8 = new Uint8ClampedArray(resultBuf);
@@ -141,17 +153,38 @@ function start() {
 
 }
 
+function calculateAndHandleFitness(organism) {
+	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+	var draftPixels = draftData.data;
+	
+	var RANGE_MAX = (255 * 3) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
+	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
+	
+	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
+	for(var a = 0, b = draftPixels.length; a < b; a+=4) {
+       total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in red component of the current pixel
+       total_difference += Math.abs(draftPixels[a+1] - ORIG_PIXELS[a+1]);    // difference in green component of the current pixel
+       total_difference += Math.abs(draftPixels[a+2] - ORIG_PIXELS[a+2]);    // difference in blue component of the current pixel
+	};
+	
+	debug("total diff: " + total_difference);
+	
+	var normalized_fitness = (((1-0) * (total_difference - RANGE_MIN)) / (RANGE_MAX - RANGE_MIN)) + 0;
+	
+	debug("normalized fitness: " + normalized_fitness);
+	
+	return normalized_fitness;
+}
 
-
-function setBestOrganism(bestOrganism, dest) {
+function setBestOrganism(bestOrganism) {
 	dest = null; // clears the previous best generation
-	dest = bestOrganism;
 	dest.drawGenome(ctxBest);
 }
 
 function Organism() {
 	this.NUM_CHROMOSOMES = 50;
 	this.chromosomes = [];
+	this.fitness = 0.0;
 }
 
 Organism.prototype.initializeRandomGenome = function() {
@@ -221,6 +254,21 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			}
 
 			break;
+		case "test-only":
+			this.r = 255;
+			this.g = 255;
+			this.b = 255;
+	
+			// clear the arrays
+			this.pointsX.length = [];
+			this.pointsY.length = [];
+			
+			for(var i = 0; i < this.NUM_VERTICES; i++) {
+				this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
+				this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+			}
+
+			break;
 		default: 
 			err("genes to randomize not found: " + genes);
 	}
@@ -243,7 +291,7 @@ Chromosome.prototype.draw = function(context) {
 
 
 function debug(s) {
-	LOG_WINDOW.value += (s + "\n");
+	LOG_WINDOW.value += ("debug: " + s + "\n");
 }
 
 function err(s) {
