@@ -36,8 +36,7 @@ var ctxRlt = null;
 var ORIG_DATA = null;
 var ORIG_PIXELS = null;
 
-var NUM_ORGANISMS = 50;
-var NUM_VERTICES = 6;
+
 
 var LOG_WINDOW = document.getElementById("logWindow");
 
@@ -81,7 +80,6 @@ function initImage() {
 	CANVAS_REALTIME.setAttribute('width', IMAGE_WIDTH);
 	CANVAS_REALTIME.setAttribute('height', IMAGE_HEIGHT);
 
-	
 	ctxImg.drawImage(img, 0, 0);
 
 	ORIG_DATA = ctxImg.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
@@ -107,23 +105,20 @@ function start() {
 	};
 	
 	ctxBest.putImageData(draftData, 0, 0);
-
-	var currGeneration = new Generation();
-	var bestGeneration = null;
 	
-	currGeneration.initializeRandomOrganisms();
-	currGeneration.drawOrganisms(ctxRlt);
+	var currOrganism = new Organism();
+	var bestOrganism = null;
+	
+	currOrganism.initializeRandomGenome();
+	currOrganism.drawGenome(ctxRlt);
 	
 	/*var bestFitness = 0.0;
-	var currGenerationCount = 0;
-	
-	makeNewGeneration();
-	evaluate();
+	var generationCount = 0;
 	
 	while(bestFitness <= 0.75) {
-		
-		currGenerationCount++;
-	}*/
+		setBestGeneration(currOrganism, bestOrganism);
+		generationCount++;
+	}
 	
 	/*var resultBuf = new ArrayBuffer(draftData.data.length);
 	var resultBuf8 = new Uint8ClampedArray(resultBuf);
@@ -146,35 +141,39 @@ function start() {
 
 }
 
-function setBestGeneration(bestGeneration) {
-	for(var i = 0; i < NUM_ORGANISMS; i++) {
-		
-	}
-}
 
-function Generation() {
-	this.organisms = [];
-}
 
-Generation.prototype.initializeRandomOrganisms = function() {
-	for(var i = 0; i < NUM_ORGANISMS; i++) {
-		this.organisms[i] = new Organism();
-		this.organisms[i].randomizeAttributes("all");
-	}
-}
-
-Generation.prototype.getRandomOrganism = function() {
-	return organisms[Math.random() * organisms.length | 0];
-}
-
-Generation.prototype.drawOrganisms = function(context) {
-	// for loop reversed for performance
-	for (var i = NUM_ORGANISMS - 1; i >= 0; i--){
-	  this.organisms[i].draw(context);
-	};
+function setBestOrganism(bestOrganism, dest) {
+	dest = null; // clears the previous best generation
+	dest = bestOrganism;
+	dest.drawGenome(ctxBest);
 }
 
 function Organism() {
+	this.NUM_CHROMOSOMES = 50;
+	this.chromosomes = [];
+}
+
+Organism.prototype.initializeRandomGenome = function() {
+	for(var i = 0; i < this.NUM_CHROMOSOMES; i++) {
+		this.chromosomes[i] = new Chromosome();
+		this.chromosomes[i].randomizeGenes("all");
+	}
+}
+
+Organism.prototype.getRandomChromosome = function() {
+	return this.chromosomes[Math.random() * this.chromosomes.length | 0];
+}
+
+Organism.prototype.drawGenome = function(context) {
+	// for loop reversed for performance
+	for (var i = this.NUM_CHROMOSOMES - 1; i >= 0; i--){
+	  this.chromosomes[i].draw(context);
+	};
+}
+
+function Chromosome() {
+	this.NUM_VERTICES = 6;
 	this.pointsX = [];
 	this.pointsY = [];
 	this.r = 0;
@@ -182,8 +181,8 @@ function Organism() {
 	this.b = 0;
 }
 
-Organism.prototype.randomizeAttributes = function(attributes) {
-	switch(attributes) {
+Chromosome.prototype.randomizeGenes = function(genes) {
+	switch(genes) {
 		case "r":
 			this.r = (Math.random() * 255 | 0);
 			break;
@@ -216,27 +215,25 @@ Organism.prototype.randomizeAttributes = function(attributes) {
 			this.pointsX.length = [];
 			this.pointsY.length = [];
 			
-			for(var i = 0; i < NUM_VERTICES; i++) {
+			for(var i = 0; i < this.NUM_VERTICES; i++) {
 				this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
 				this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
 			}
 
 			break;
 		default: 
-			err("attributes to randomize not found: " + attribute);
+			err("genes to randomize not found: " + genes);
 	}
 }
 
-Organism.prototype.draw = function(context) {
+Chromosome.prototype.draw = function(context) {
 	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + ",0.3)";
 	
 	context.beginPath();
 	
 	context.moveTo(this.pointsX[0], this.pointsY[0]);
 	
-	var pointsLength = NUM_VERTICES;
-	
-	for (var i = 1; i < pointsLength - 1; i++){
+	for (var i = 1; i < this.NUM_VERTICES - 1; i++){
 	  context.lineTo(this.pointsX[i], this.pointsY[i]);
 	};
 	
