@@ -19,7 +19,7 @@
  */
 
 var img = new Image();
-img.src = "assets/chrome-logo.png";
+img.src = "../assets/chrome-logo.png";
 
 var IMAGE_HEIGHT = 0;
 var IMAGE_WIDTH = 0;
@@ -32,6 +32,12 @@ var ctxImg = null;
 var ctxBest = null;
 var ctxRlt = null;
 	
+var ORIG_DATA = null;
+var ORIG_PIXELS = null;
+
+var draftData = null;
+var draftPixels = null;
+
 function changeSourceImage(url) {
 	img.src = url;
 	
@@ -63,8 +69,11 @@ function initImage() {
 	
 	CANVAS_REALTIME.setAttribute('width', IMAGE_WIDTH);
 	CANVAS_REALTIME.setAttribute('height', IMAGE_HEIGHT);
-	
+
 	ctxImg.drawImage(img, 0, 0);
+
+	ORIG_DATA = ctxImg.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+	ORIG_PIXELS = ORIG_DATA.data;
 }
 
 function init() {
@@ -74,7 +83,39 @@ function init() {
 }
 
 function start() {	
-	// nothing here yet
+	draftData = ctxBest.createImageData(IMAGE_WIDTH, IMAGE_HEIGHT);
+	draftPixels = draftData.data;
+	
+	for(var a = 0, b = draftPixels.length; a < b; a+=4) {
+        draftPixels[a]   = ORIG_PIXELS[a];    // red
+        draftPixels[a+1] = ORIG_PIXELS[a+1];    // green
+        draftPixels[a+2] = ORIG_PIXELS[a+2];    // blue
+        draftPixels[a+3] = ORIG_PIXELS[a+3]- 128;      // alpha
+	};
+	
+	ctxBest.putImageData(draftData, 0, 0);
+	
+	/*var resultBuf = new ArrayBuffer(draftData.data.length);
+	var resultBuf8 = new Uint8ClampedArray(resultBuf);
+	var resultBuf32 = new Uint32Array(resultBuf8);
+
+	var sourceBuf = new ArrayBuffer(origData.data.length);
+	var sourceBuf8 = new Uint8ClampedArray(sourceBuf);
+	var sourceBuf32 = new Uint32Array(sourceBuf8);
+	
+	for (var y = 0; y < IMAGE_HEIGHT; ++y) {
+	    for (var x = 0; x < IMAGE_WIDTH; ++x) {
+	    	  var index = (y * IMAGE_WIDTH + x);
+	    	  alert(sourceBuf32[index]);
+	          resultBuf32[index] = sourceBuf32[index];
+	    }
+	}
+
+	draftData.data.set(resultBuf8);
+
+	
+	*/
+
 }
 
 window.onload = function() {
