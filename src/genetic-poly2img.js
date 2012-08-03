@@ -20,7 +20,7 @@
 
 
 var img = new Image();
-img.src = "../assets/chrome-logo.png";//"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
+img.src = "../assets/chrome-logo.png"; //"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
 
 var IMAGE_HEIGHT = 0;
 var IMAGE_WIDTH = 0;
@@ -42,9 +42,10 @@ var BEST_ORGANISM = null;
 var CURR_ORGANISM = null;
 
 var	BEST_FITNESS = 1.0;  // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
-var CURR_FITNESS = -1;
-
+var CURR_FITNESS = 1.0;
 var GENERATION_COUNT = 0;
+
+var MUTATION_COUNT = 0;
 var MUTATION_LEVEL = "medium";
 var MUTATION_INDEX = -1;
 
@@ -107,16 +108,12 @@ function startEvolution() {
 	IS_EVOLVING = true;
 	debug("starting evolution");
 	EVOLVE_INTERVAL_ID = setInterval("evolveOrganisms();", 0);
-	//setInterval("drawBest();", 50);
-}
-
-function drawBest() {
-	drawOrganism(BEST_ORGANISM, ctxBest);
 }
 
 function pauseEvolution() {
 	IS_EVOLVING = false;	
-	debug("pausing evolution with best fitness " + ((1.0-BEST_FITNESS) * 100).toFixed(2)+"%");
+	debug("pausing evolution");
+	printStats();
 	clearInterval(EVOLVE_INTERVAL_ID);
 }
 
@@ -138,9 +135,9 @@ function evolveOrganisms() {
 	}
 	
 	if(BEST_FITNESS <= 0.06) {
-		clearInterval(EVOLVE_INTERVAL_ID);
-		debug("!!reached optimum fitness " + BEST_FITNESS);
-		alert("!!reached optimum fitness " + BEST_FITNESS);
+		debug("!!reached optimum fitness");
+		alert("!!reached optimum fitness");
+		pauseEvolution();
 		return;
 	}
 	
@@ -151,7 +148,7 @@ function calculateFitness(organism) {
 	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 	var draftPixels = draftData.data;
 	
-	var RANGE_MAX = (255 * 4) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
+	var RANGE_MAX = (256 * 4) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
 	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
 	
 	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
@@ -159,9 +156,7 @@ function calculateFitness(organism) {
        total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in RGBA components of the current pixel
 	};
 	
-	//debug("total diff: " + total_difference);
 	var normalized_fitness = (((1-0) * (total_difference - RANGE_MIN)) / (RANGE_MAX - RANGE_MIN)) + 0;
-	//debug("normalized fitness: " + normalized_fitness);
 	
 	return normalized_fitness;
 }
@@ -226,7 +221,7 @@ Organism.prototype.mutate = function(mutationLevel) {
 	MUTATION_INDEX = randInt(this.chromosomes.length);
 	var randChromosome = this.chromosomes[MUTATION_INDEX];
 	var rouletteHit = randFloat(8.0);
-
+	
 	if(rouletteHit < 4.0) { // 50% chance of mutating polygon color
 		switch(mutationLevel) {
 			case "soft":
@@ -264,10 +259,11 @@ Organism.prototype.mutate = function(mutationLevel) {
 				err("unrecognized mutation level: " + mutationLevel);
 		}
 	}
+	
+	MUTATION_COUNT++;
 }
 
 Organism.prototype.drawGenome = function(context) {
-	// for loop reversed for performance
 	for (var i = Organism.NUM_CHROMOSOMES - 1; i >= 0; i--) {
 		this.chromosomes[i].draw(context);
 	};
@@ -287,13 +283,13 @@ Chromosome.NUM_VERTICES = 6;
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
 		case "red":
-			this.r = randInt(255);
+			this.r = randInt(256);
 			break;
 		case "green":
-			this.g = randInt(255);
+			this.g = randInt(256);
 			break;
 		case "blue":
-			this.b = randInt(255);
+			this.b = randInt(256);
 			break;
 		case "alpha":
 			this.a = randFloat(1.0);
@@ -319,9 +315,9 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			}
 			break;
 		case "all":
-			this.r = randInt(255);
-			this.g = randInt(255);
-			this.b = randInt(255);
+			this.r = randInt(256);
+			this.g = randInt(256);
+			this.b = randInt(256);
 			this.a = 0.0;//randFloat(1.0);
 
 			this.pointsX.length = [];
@@ -407,6 +403,10 @@ function randFloat(seed) {
 	return (Math.random() * seed);
 }
 
+function raw(s) {
+	LOG_WINDOW.value += (s + "\n");
+}
+
 function debug(s) {
 	LOG_WINDOW.value += ("debug: " + s + "\n");
 }
@@ -417,6 +417,14 @@ function err(s) {
 
 function warn(s) {
 	LOG_WINDOW.value += ("warning: " + s + "\n");
+}
+
+function printStats() {
+	raw("============STATS============");
+	raw("current generation: " + GENERATION_COUNT);
+	raw("best fitness so far: " + ((1.0-BEST_FITNESS) * 100).toFixed(2)+"%");
+	raw("total mutations so far: " + MUTATION_COUNT);
+	raw("=============================");
 }
 
 // PROGRAM INITIALIZATION
