@@ -112,13 +112,14 @@ function pauseEvolution() {
 
 // ALGORITHM CORE FUNCTIONS
 function evolveOrganisms() {
-	drawOrganism(CURR_ORGANISM);
+	drawOrganism(CURR_ORGANISM, ctxRlt);
 	calculateFitness(CURR_ORGANISM);
 	
 	if(CURR_ORGANISM.fitness < BEST_ORGANISM.fitness) {
 		setFittestOrganism(CURR_ORGANISM);
 		debug("!!reached new best fitness: " + BEST_ORGANISM.fitness);
 	} else {
+		CURR_ORGANISM
 		CURR_ORGANISM.mutate(MUTATION_LEVEL);
 	}
 
@@ -152,9 +153,9 @@ function calculateFitness(organism) {
 	return normalized_fitness;
 }
 
-function drawOrganism(organism) {
-	clearCanvas(ctxRlt);
-	organism.drawGenome(ctxRlt);
+function drawOrganism(organism, context) {
+	clearCanvas(context);
+	organism.drawGenome(context);
 }
 
 function Organism() {
@@ -337,9 +338,8 @@ Chromosome.prototype.draw = function(context) {
 
 // UTILITY/CONVENIENCE/OTHER functions
 function setFittestOrganism(newBestOrganism) {
-	clearCanvas(ctxBest);
 	BEST_ORGANISM = newBestOrganism;
-	newBestOrganism.drawGenome(ctxBest);
+	drawOrganism(BEST_ORGANISM, ctxBest);
 }
 
 function clearCanvas(context) {
