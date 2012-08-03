@@ -41,6 +41,7 @@ var LOG_WINDOW = null;
 var BEST_ORGANISM = null;
 var CURR_ORGANISM = null;
 var GENERATION_COUNT = -1;
+var MUTATION_LEVEL = null;
 
 var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
@@ -87,6 +88,7 @@ function initOrganisms() {
 	CURR_ORGANISM.initializeRandomGenome();
 	
 	GENERATION_COUNT = 0;
+	MUTATION_LEVEL = "medium";
 }
 
 function init() {
@@ -116,6 +118,8 @@ function evolveOrganisms() {
 	if(CURR_ORGANISM.fitness < BEST_ORGANISM.fitness) {
 		setFittestOrganism(CURR_ORGANISM);
 		debug("!!reached new best fitness: " + BEST_ORGANISM.fitness);
+	} else {
+		CURR_ORGANISM.mutate(MUTATION_LEVEL);
 	}
 
 	if(BEST_ORGANISM.fitness <= 0.25) {
@@ -167,6 +171,49 @@ Organism.prototype.initializeRandomGenome = function() {
 	}
 }
 
+Organism.prototype.mutate = function(mutationLevel) {
+	var randChromosome = this.getRandomChromosome();
+	var rouletteHit = randFloat(8.0);
+	
+	if(rouletteHit < 4.0) { // 50% chance of mutating polygon color
+		switch(mutationLevel) {
+			case "soft":
+				break;
+			case "medium":
+				if(rouletteHit < 1.0) {
+					randChromosome.randomizeGenes("red");
+				} else if(rouletteHit >= 1.0 && rouletteHit < 2.0) {
+					randChromosome.randomizeGenes("green");
+				} else if(rouletteHit >= 2.0 && rouletteHit < 3.0) {
+					randChromosome.randomizeGenes("blue");
+				} else {
+					randChromosome.randomizeGenes("alpha");
+				} 
+				break;
+			case "hard":
+				break;
+			default:
+				err("unrecognized mutation level: " + mutationLevel);
+		}
+	} else { // 50% chance of mutating polygon vertices
+		switch(mutationLevel) {
+			case "soft":
+				break;
+			case "medium":
+				if(rouletteHit < 6.0) {
+					randChromosome.randomizeGenes("pointsX");
+				} else {
+					randChromosome.randomizeGenes("pointsY");
+				}
+				break;
+			case "hard":
+				break;
+			default:
+				err("unrecognized mutation level: " + mutationLevel);
+		}
+	}
+}
+
 Organism.prototype.getRandomChromosome = function() {
 	return this.chromosomes[randInt(this.chromosomes.length)];
 }
@@ -189,6 +236,20 @@ function Chromosome() {
 
 Chromosome.NUM_VERTICES = 6;
 
+Chromosome.prototype.getClonedChromosome = function() {
+	var clonedChromosome = new Chromosome();
+	
+	clonedChromosome.r = Number(this.r);
+	clonedChromosome.g = Number(this.g);
+	clonedChromosome.b = Number(this.b);
+	clonedChromosome.a = Number(this.a);
+	
+	clonedChromosome.pointsX = this.pointsX.slice(0); // copy pointsX from end-to-end
+	clonedChromosome.pointsY = this.pointsY.slice(0); // copy pointsY from end-to-end
+	
+	return clonedChromosome;
+}
+
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
 		case "red":
@@ -204,20 +265,20 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.a = randFloat(1.0);
 			break;
 		case "pointsX":
-			this.pointsX.length = [];
+			this.pointsX = [];
 			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsX[i] = randInt(IMAGE_WIDTH);
 			}
 			break;
 		case "pointsY":
-			this.pointsY.length = [];
+			this.pointsY = [];
 			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
 			break;
-		case "allPoints":
-			this.pointsX.length = [];
-			this.pointsY.length = [];
+		case "pointsXY":
+			this.pointsX = [];
+			this.pointsY = [];
 			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsX[i] = randInt(IMAGE_WIDTH);
 				this.pointsY[i] = randInt(IMAGE_HEIGHT);
@@ -228,8 +289,7 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.g = randInt(255);
 			this.b = randInt(255);
 			this.a = randFloat(1.0);
-			
-			// clear the arrays
+
 			this.pointsX.length = [];
 			this.pointsY.length = [];
 			
@@ -245,7 +305,6 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.b = 255;
 			this.a = 1.0;
 			
-			// clear the arrays
 			this.pointsX.length = [];
 			this.pointsY.length = [];
 			
