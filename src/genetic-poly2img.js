@@ -60,9 +60,9 @@ function initCanvases() {
 }
 
 function initImage() {
-	ctxImg.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-	ctxBest.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-	ctxRlt.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+	clearCanvas(ctxImg);
+	clearCanvas(ctxBest);
+	clearCanvas(ctxRlt);
 
 	IMAGE_WIDTH = img.width;
 	IMAGE_HEIGHT = img.height;
@@ -118,8 +118,8 @@ function pauseEvolution() {
 // ALGORITHM CORE FUNCTIONS
 function evolveOrganisms() {
 	var currentOrganism = CURR_ORGANISMS[ORGANISM_INDEX];
-	
 	drawOrganism(currentOrganism);
+
 	calculateFitness(currentOrganism);
 	
 	if(currentOrganism.fitness < BEST_FITNESS) {
@@ -127,7 +127,7 @@ function evolveOrganisms() {
 		setFittestOrganism(currentOrganism);
 		debug("!!reached new best fitness: " + BEST_FITNESS);
 	}
-	
+
 	if(BEST_FITNESS <= 0.25) {
 		clearInterval(EVOLVE_INTERVAL_ID);
 		debug("!!reached optimum fitness " + BEST_FITNESS);
@@ -185,13 +185,13 @@ Organism.prototype.initializeRandomGenome = function() {
 }
 
 Organism.prototype.getRandomChromosome = function() {
-	return this.chromosomes[Math.random() * this.chromosomes.length | 0];
+	return this.chromosomes[randInt(this.chromosomes.length)];
 }
 
 Organism.prototype.drawGenome = function(context) {
 	// for loop reversed for performance
-	for (var i = this.NUM_CHROMOSOMES - 1; i >= 0; i--){
-	  this.chromosomes[i].draw(context);
+	for (var i = this.NUM_CHROMOSOMES - 1; i >= 0; i--) {
+		this.chromosomes[i].draw(context);
 	};
 }
 
@@ -207,40 +207,46 @@ function Chromosome() {
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
 		case "r":
-			this.r = (Math.random() * 255 | 0);
+			this.r = randInt(255);
 			break;
 		case "g":
-			this.g = (Math.random() * 255 | 0);
+			this.g = randInt(255);
 			break;
 		case "b":
-			this.b = (Math.random() * 255 | 0);
+			this.b = randInt(255);
 			break;
 		case "pointsX":
 			this.pointsX.length = [];
-			this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
+			for(var i = 0; i < this.NUM_VERTICES; i++) {
+				this.pointsX[i] = randInt(IMAGE_WIDTH);
+			}
 			break;
 		case "pointsY":
 			this.pointsY.length = [];
-			this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+			for(var i = 0; i < this.NUM_VERTICES; i++) {
+				this.pointsY[i] = randInt(IMAGE_HEIGHT);
+			}
 			break;
 		case "allPoints":
 			this.pointsX.length = [];
 			this.pointsY.length = [];
-			this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
-			this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+			for(var i = 0; i < this.NUM_VERTICES; i++) {
+				this.pointsX[i] = randInt(IMAGE_WIDTH);
+				this.pointsY[i] = randInt(IMAGE_HEIGHT);
+			}
 			break;
 		case "all":
-			this.r = (Math.random() * 255 | 0);
-			this.g = (Math.random() * 255 | 0);
-			this.b = (Math.random() * 255 | 0);
+			this.r = randInt(255);
+			this.g = randInt(255);
+			this.b = randInt(255);
 	
 			// clear the arrays
 			this.pointsX.length = [];
 			this.pointsY.length = [];
 			
 			for(var i = 0; i < this.NUM_VERTICES; i++) {
-				this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
-				this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+				this.pointsX[i] = randInt(IMAGE_WIDTH);
+				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
 
 			break;
@@ -254,8 +260,8 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.pointsY.length = [];
 			
 			for(var i = 0; i < this.NUM_VERTICES; i++) {
-				this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
-				this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
+				this.pointsX[i] = randInt(IMAGE_WIDTH);
+				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
 
 			break;
@@ -314,6 +320,14 @@ function changeSourceImage(url) {
 	}
 }
 
+function randInt(seed) {
+	return (Math.random() * seed) | 0;
+}
+
+function randFloat(seed) {
+	return (Math.random() * seed);
+}
+
 function debug(s) {
 	LOG_WINDOW.value += ("debug: " + s + "\n");
 }
@@ -325,7 +339,6 @@ function err(s) {
 function warn(s) {
 	LOG_WINDOW.value += ("warning: " + s + "\n");
 }
-
 
 // PROGRAM INITIALIZATION
 window.onload = function() {
