@@ -38,12 +38,9 @@ var ORIG_PIXELS = null;
 
 var LOG_WINDOW = null;
 
-var BEST_FITNESS = -1;
+var BEST_ORGANISM = null;
+var CURR_ORGANISM = null;
 var GENERATION_COUNT = -1;
-
-var ORGANISMS_PER_GENERATION = -1;
-var ORGANISM_INDEX = -1;
-var CURR_ORGANISMS = null;
 
 var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
@@ -84,16 +81,12 @@ function initImage() {
 }
 
 function initOrganisms() {
-	BEST_FITNESS = 1.0; // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
-	GENERATION_COUNT = 0;
-	ORGANISMS_PER_GENERATION = 100;
-	ORGANISM_INDEX = 0;
-	CURR_ORGANISMS = [];
+	BEST_ORGANISM = new Organism();
 	
-	for(var i = 0; i < ORGANISMS_PER_GENERATION; i++) {
-		CURR_ORGANISMS[i] = new Organism();
-		CURR_ORGANISMS[i].initializeRandomGenome();
-	}
+	CURR_ORGANISM = new Organism();
+	CURR_ORGANISM.initializeRandomGenome();
+	
+	GENERATION_COUNT = 0;
 }
 
 function init() {
@@ -117,31 +110,22 @@ function pauseEvolution() {
 
 // ALGORITHM CORE FUNCTIONS
 function evolveOrganisms() {
-	var currentOrganism = CURR_ORGANISMS[ORGANISM_INDEX];
-	drawOrganism(currentOrganism);
-
-	calculateFitness(currentOrganism);
+	drawOrganism(CURR_ORGANISM);
+	calculateFitness(CURR_ORGANISM);
 	
-	if(currentOrganism.fitness < BEST_FITNESS) {
-		BEST_FITNESS = currentOrganism.fitness;
-		setFittestOrganism(currentOrganism);
-		debug("!!reached new best fitness: " + BEST_FITNESS);
+	if(CURR_ORGANISM.fitness < BEST_ORGANISM.fitness) {
+		setFittestOrganism(CURR_ORGANISM);
+		debug("!!reached new best fitness: " + BEST_ORGANISM.fitness);
 	}
 
-	if(BEST_FITNESS <= 0.25) {
+	if(BEST_ORGANISM.fitness <= 0.25) {
 		clearInterval(EVOLVE_INTERVAL_ID);
-		debug("!!reached optimum fitness " + BEST_FITNESS);
-		alert("!!reached optimum fitness " + BEST_FITNESS);
+		debug("!!reached optimum fitness " + BEST_ORGANISM.fitness);
+		alert("!!reached optimum fitness " + BEST_ORGANISM.fitness);
 		return;
 	}
 	
-	if(ORGANISM_INDEX == ORGANISMS_PER_GENERATION - 1) { // if the current index has reached the end of the array, move on to next generation 
-		GENERATION_COUNT++;
-		ORGANISM_INDEX = 0;
-		debug("moving on to next generation... "+ GENERATION_COUNT);
-	} else {
-		ORGANISM_INDEX++;
-	}
+	GENERATION_COUNT++;
 }
 
 function calculateFitness(organism) {
@@ -171,7 +155,7 @@ function drawOrganism(organism) {
 
 function Organism() {
 	this.chromosomes = [];
-	this.fitness = 0.0;
+	this.fitness = 1.0; // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
 }
 
 Organism.NUM_CHROMOSOMES = 50;
@@ -195,7 +179,6 @@ Organism.prototype.drawGenome = function(context) {
 }
 
 function Chromosome() {
-
 	this.pointsX = [];
 	this.pointsY = [];
 	this.r = 0;
@@ -296,6 +279,7 @@ Chromosome.prototype.draw = function(context) {
 // UTILITY/CONVENIENCE/OTHER functions
 function setFittestOrganism(newBestOrganism) {
 	clearCanvas(ctxBest);
+	BEST_ORGANISM = newBestOrganism;
 	newBestOrganism.drawGenome(ctxBest);
 }
 
