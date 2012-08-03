@@ -170,13 +170,14 @@ function drawOrganism(organism) {
 }
 
 function Organism() {
-	this.NUM_CHROMOSOMES = 50;
 	this.chromosomes = [];
 	this.fitness = 0.0;
 }
 
+Organism.NUM_CHROMOSOMES = 50;
+
 Organism.prototype.initializeRandomGenome = function() {
-	for(var i = 0; i < this.NUM_CHROMOSOMES; i++) {
+	for(var i = 0; i < Organism.NUM_CHROMOSOMES; i++) {
 		this.chromosomes[i] = new Chromosome();
 		this.chromosomes[i].randomizeGenes("all");
 	}
@@ -188,13 +189,13 @@ Organism.prototype.getRandomChromosome = function() {
 
 Organism.prototype.drawGenome = function(context) {
 	// for loop reversed for performance
-	for (var i = this.NUM_CHROMOSOMES - 1; i >= 0; i--) {
+	for (var i = Organism.NUM_CHROMOSOMES - 1; i >= 0; i--) {
 		this.chromosomes[i].draw(context);
 	};
 }
 
 function Chromosome() {
-	this.NUM_VERTICES = 6;
+
 	this.pointsX = [];
 	this.pointsY = [];
 	this.r = 0;
@@ -202,6 +203,8 @@ function Chromosome() {
 	this.b = 0;
 	this.a = 0.0;
 }
+
+Chromosome.NUM_VERTICES = 6;
 
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
@@ -219,20 +222,20 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			break;
 		case "pointsX":
 			this.pointsX.length = [];
-			for(var i = 0; i < this.NUM_VERTICES; i++) {
+			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsX[i] = randInt(IMAGE_WIDTH);
 			}
 			break;
 		case "pointsY":
 			this.pointsY.length = [];
-			for(var i = 0; i < this.NUM_VERTICES; i++) {
+			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
 			break;
 		case "allPoints":
 			this.pointsX.length = [];
 			this.pointsY.length = [];
-			for(var i = 0; i < this.NUM_VERTICES; i++) {
+			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsX[i] = randInt(IMAGE_WIDTH);
 				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
@@ -247,7 +250,7 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.pointsX.length = [];
 			this.pointsY.length = [];
 			
-			for(var i = 0; i < this.NUM_VERTICES; i++) {
+			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsX[i] = randInt(IMAGE_WIDTH);
 				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
@@ -263,7 +266,7 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.pointsX.length = [];
 			this.pointsY.length = [];
 			
-			for(var i = 0; i < this.NUM_VERTICES; i++) {
+			for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
 				this.pointsX[i] = randInt(IMAGE_WIDTH);
 				this.pointsY[i] = randInt(IMAGE_HEIGHT);
 			}
@@ -281,7 +284,7 @@ Chromosome.prototype.draw = function(context) {
 	
 	context.moveTo(this.pointsX[0], this.pointsY[0]);
 	
-	for (var i = 1; i < this.NUM_VERTICES - 1; i++){
+	for (var i = 1; i < Chromosome.NUM_VERTICES - 1; i++){
 	  context.lineTo(this.pointsX[i], this.pointsY[i]);
 	};
 	
