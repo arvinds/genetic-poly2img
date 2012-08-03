@@ -152,11 +152,8 @@ function calculateFitness(organism) {
 	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
 	
 	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
-	for(var a = 0, b = draftPixels.length; a < b; a+=4) {
-       total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in red component of the current pixel
-       total_difference += Math.abs(draftPixels[a+1] - ORIG_PIXELS[a+1]);    // difference in green component of the current pixel
-       total_difference += Math.abs(draftPixels[a+2] - ORIG_PIXELS[a+2]);    // difference in blue component of the current pixel
-       total_difference += Math.abs(draftPixels[a+3] - ORIG_PIXELS[a+3]); // difference in alpha component of the current pixel
+	for(var a = 0, b = draftPixels.length; a < b; a++) {
+       total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in RGBA components of the current pixel
 	};
 	
 	//debug("total diff: " + total_difference);
