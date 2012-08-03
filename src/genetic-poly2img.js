@@ -52,6 +52,8 @@ var MUTATION_INDEX = -1;
 var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
 
+var SECOND_COUNT = 0;
+
 // INITIALIZATION FUNCTIONS
 function initCanvases() {
 	CANVAS_IMG = document.getElementById('canvas_img');
@@ -83,8 +85,8 @@ function initImage() {
 	ctxImg.drawImage(img, 0, 0);
 
 	ORIG_DATA = ctxImg.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-
-	ORIG_PIXELS = ORIG_DATA.data;
+	ORIG_PIXELS = new Uint32Array(ORIG_DATA.data.length);
+	ORIG_PIXELS.set(ORIG_DATA.data);
 }
 
 function initOrganisms() {
@@ -108,6 +110,7 @@ function startEvolution() {
 	IS_EVOLVING = true;
 	debug("starting evolution");
 	EVOLVE_INTERVAL_ID = setInterval("evolveOrganisms();", 0);
+	setInterval("SECOND_COUNT++;", 1000);
 }
 
 function pauseEvolution() {
@@ -131,6 +134,7 @@ function evolveOrganisms() {
 		drawOrganism(BEST_ORGANISM, ctxBest);
 
 	} else {
+		MUTATION_COUNT--;
 		Organism.doChromosomeCopy(BEST_ORGANISM, CURR_ORGANISM, MUTATION_INDEX);
 	}
 	
@@ -146,12 +150,14 @@ function evolveOrganisms() {
 
 function calculateFitness(organism) {
 	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-	var draftPixels = draftData.data;
+	var draftPixels = new Uint32Array(draftData.data.length);
+	draftPixels.set(draftData.data);
 	
 	var RANGE_MAX = (256 * 4) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
 	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
 	
 	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
+	
 	for(var a = 0, b = draftPixels.length; a < b; a++) {
        total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in RGBA components of the current pixel
 	};
@@ -278,7 +284,7 @@ function Chromosome() {
 	this.a = 0.0;
 }
 
-Chromosome.NUM_VERTICES = 6;
+Chromosome.NUM_VERTICES = 10;
 
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
@@ -424,6 +430,7 @@ function printStats() {
 	raw("current generation: " + GENERATION_COUNT);
 	raw("best fitness so far: " + ((1.0-BEST_FITNESS) * 100).toFixed(2)+"%");
 	raw("total mutations so far: " + MUTATION_COUNT);
+	raw("elapsed time: " + (SECOND_COUNT/60).toFixed(0) + " minutes " + (SECOND_COUNT % 60) + " seconds");
 	raw("=============================");
 }
 
