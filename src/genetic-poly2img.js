@@ -342,11 +342,11 @@ function setFittestOrganism(newBestOrganism) {
 	newBestOrganism.drawGenome(ctxBest);
 }
 
-function clearCanvas(context){
+function clearCanvas(context) {
 	context.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 }
 
-function toggleEvolution(){
+function toggleEvolution() {
 	IS_EVOLVING = !IS_EVOLVING;
 	
 	if(!IS_EVOLVING) {
@@ -366,7 +366,9 @@ function changeSourceImage(url) {
 	img.src = url;
 	
 	img.onload = function() {
-		restartEvolution
+		initImage();
+		initOrganisms();
+		startEvolution();
 	}
 }
 
