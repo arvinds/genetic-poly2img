@@ -148,7 +148,7 @@ function calculateFitness(organism) {
 	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 	var draftPixels = draftData.data;
 	
-	var RANGE_MAX = (255 * 3) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
+	var RANGE_MAX = (255 * 4) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
 	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
 	
 	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
@@ -156,6 +156,7 @@ function calculateFitness(organism) {
        total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in red component of the current pixel
        total_difference += Math.abs(draftPixels[a+1] - ORIG_PIXELS[a+1]);    // difference in green component of the current pixel
        total_difference += Math.abs(draftPixels[a+2] - ORIG_PIXELS[a+2]);    // difference in blue component of the current pixel
+       total_difference += Math.abs(draftPixels[a+3] - ORIG_PIXELS[a+3]); // difference in alpha component of the current pixel
 	};
 	
 	//debug("total diff: " + total_difference);
@@ -202,18 +203,22 @@ function Chromosome() {
 	this.r = 0;
 	this.g = 0;
 	this.b = 0;
+	this.a = 0.0;
 }
 
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
-		case "r":
+		case "red":
 			this.r = randInt(255);
 			break;
-		case "g":
+		case "green":
 			this.g = randInt(255);
 			break;
-		case "b":
+		case "blue":
 			this.b = randInt(255);
+			break;
+		case "alpha":
+			this.a = randFloat(1.0);
 			break;
 		case "pointsX":
 			this.pointsX.length = [];
@@ -239,7 +244,8 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.r = randInt(255);
 			this.g = randInt(255);
 			this.b = randInt(255);
-	
+			this.a = randFloat(1.0);
+			
 			// clear the arrays
 			this.pointsX.length = [];
 			this.pointsY.length = [];
@@ -254,7 +260,8 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.r = 255;
 			this.g = 255;
 			this.b = 255;
-	
+			this.a = 1.0;
+			
 			// clear the arrays
 			this.pointsX.length = [];
 			this.pointsY.length = [];
@@ -271,7 +278,7 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 }
 
 Chromosome.prototype.draw = function(context) {
-	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + ",0.3)";
+	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + "," + this.a + ")";
 	
 	context.beginPath();
 	
