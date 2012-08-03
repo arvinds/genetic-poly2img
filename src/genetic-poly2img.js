@@ -44,9 +44,13 @@ var GENERATION_COUNT = -1;
 var ORGANISMS_PER_GENERATION = -1;
 var ORGANISM_INDEX = -1;
 var CURR_ORGANISMS = null;
+var ROULETTE_SELECTION = null;
 
 var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
+
+var CROSSOVER_PROBABILITY = 0.2;
+var MUTATION_PROBABILITY = 0.3;
 
 // INITIALIZATION FUNCTIONS
 function initCanvases() {
@@ -89,6 +93,7 @@ function initOrganisms() {
 	ORGANISMS_PER_GENERATION = 100;
 	ORGANISM_INDEX = 0;
 	CURR_ORGANISMS = [];
+	ROULETTE_SELECTION = [];
 	
 	for(var i = 0; i < ORGANISMS_PER_GENERATION; i++) {
 		CURR_ORGANISMS[i] = new Organism();
@@ -118,12 +123,11 @@ function pauseEvolution() {
 // ALGORITHM CORE FUNCTIONS
 function evolveOrganisms() {
 	var currentOrganism = CURR_ORGANISMS[ORGANISM_INDEX];
-	
 	drawOrganism(currentOrganism);
 	calculateFitness(currentOrganism);
 	
-	if(currentOrganism.fitness < BEST_FITNESS) {
-		BEST_FITNESS = currentOrganism.fitness;
+	if(currentOrganism.normFitness < BEST_FITNESS) {
+		BEST_FITNESS = currentOrganism.normFitness;
 		setFittestOrganism(currentOrganism);
 		debug("!!reached new best fitness: " + BEST_FITNESS);
 	}
@@ -136,6 +140,7 @@ function evolveOrganisms() {
 	}
 	
 	if(ORGANISM_INDEX == ORGANISMS_PER_GENERATION - 1) { // if the current index has reached the end of the array, move on to next generation 
+		CURR_ORGANISMS = createNewGeneration(CURR_ORGANISMS);
 		GENERATION_COUNT++;
 		ORGANISM_INDEX = 0;
 		debug("moving on to next generation... "+ GENERATION_COUNT);
@@ -148,21 +153,24 @@ function calculateFitness(organism) {
 	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 	var draftPixels = draftData.data;
 	
-	var RANGE_MAX = (255 * 3) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
-	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
+	var RANGE_MAX = (255 * 4) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current Organism and the original organism (image) -- when the Organisms are exactly different
+	var RANGE_MIN = 0; // lower bound of difference between the current Organism and the original Organism (image) -- when the Organisms are exactly the same
 	
-	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
+	var total_difference = 0; // total difference of all corresponding pixels between original Organism and current Organism
 	for(var a = 0, b = draftPixels.length; a < b; a+=4) {
        total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in red component of the current pixel
        total_difference += Math.abs(draftPixels[a+1] - ORIG_PIXELS[a+1]);    // difference in green component of the current pixel
        total_difference += Math.abs(draftPixels[a+2] - ORIG_PIXELS[a+2]);    // difference in blue component of the current pixel
+       total_difference += Math.abs(draftPixels[a+3] - ORIG_PIXELS[a+3]);    // difference in alpha component of the current pixel
 	};
 	
 	//debug("total diff: " + total_difference);
 	var normalized_fitness = (((1-0) * (total_difference - RANGE_MIN)) / (RANGE_MAX - RANGE_MIN)) + 0;
 	//debug("normalized fitness: " + normalized_fitness);
 	
-	organism.fitness = normalized_fitness;
+	organism.fitness = total_difference;
+	organism.normFitness = normalized_fitness;
+	
 	return normalized_fitness;
 }
 
@@ -171,21 +179,94 @@ function drawOrganism(organism) {
 	organism.drawGenome(ctxRlt);
 }
 
+function createNewGeneration(parents) { // takes an array of Organisms, the "parents", and returns a new array containing the "children" of the "parents"
+	var selected_parents = []; // intermediate children ( result of roulette wheel selection)
+	var children = []; // final children for next generation ( value returned )
+	var totalFitness = 0;
+	var roulette_mark = 0;
+	
+	for (var i = ORGANISMS_PER_GENERATION - 1; i >= 0; i--) {
+		totalFitness += parents[i].fitness;
+	};
+
+	for(var k = ORGANISMS_PER_GENERATION - 1; k >= 0; k--) {
+		var temp_sum = 0;
+		roulette_mark = randInt(totalFitness);
+		
+		for (var j = ORGANISMS_PER_GENERATION - 1; j >= 0; j--) {
+			temp_sum += parents[j].fitness;
+			
+			if(temp_sum > roulette_mark) {
+				selected_parents[k] = parents[j];
+			}
+		};
+		
+	};
+	/*for(var m = ORGANISMS_PER_GENERATION - 1; m >= 0; m--) {
+		debug("selected parent: " + selected_parents[m].fitness + " " + selected_parents.length);
+	};*/
+	
+	for(var m = 0; m < ORGANISMS_PER_GENERATION-1; m+=2) {
+		//if(isToDoMutation())	
+		selected_parents[m].mutate(false);
+		//if(isToDoMutation())
+		selected_parents[m+1].mutate(false);
+		
+		children[m] = selected_parents[m];
+		children[m+1] = selected_parents[m+1];
+	};
+	
+	for(var n = 0; n < ORGANISMS_PER_GENERATION-1; n++) {
+		debug("children: " + children[n].fitness);
+	}
+	
+	return children;
+}
+
+function isToDoCrossover() {
+	/*var chance = randFloat(1.0);
+	
+	if(chance < CROSSOVER_PROBABILITY)
+		return true;
+	else return false;*/
+	return false; 		// temporarily disbaling crossovers
+}
+
+function isToDoMutation() {
+	var chance = randFloat(1.0);
+	
+	if(chance < MUTATION_PROBABILITY)
+		return true;
+	else return false;
+}
+
 function Organism() {
 	this.NUM_CHROMOSOMES = 50;
 	this.chromosomes = [];
-	this.fitness = 0.0;
+	this.normFitness = 0.0;
+	this.fitness = 0;
 }
 
 Organism.prototype.initializeRandomGenome = function() {
 	for(var i = 0; i < this.NUM_CHROMOSOMES; i++) {
 		this.chromosomes[i] = new Chromosome();
-		this.chromosomes[i].randomizeGenes("all");
+		this.chromosomes[i].mutateGenes("all", true);
 	}
 }
 
 Organism.prototype.getRandomChromosome = function() {
-	return this.chromosomes[Math.random() * this.chromosomes.length | 0];
+	return this.chromosomes[randInt(this.chromosomes.length)];
+}
+
+Organism.prototype.crossOver = function(otherOrganism) { 
+	return; // will implement crossover later
+}
+
+Organism.prototype.mutate = function(isHardMutate) {
+	var randomGenes = ["red", "green", "blue", "alpha"];
+	var randomGene = randomGenes[randInt(randomGenes.length)];
+	
+	this.getRandomChromosome().mutateGenes(randomGene, isHardMutate);
 }
 
 Organism.prototype.drawGenome = function(context) {
@@ -202,18 +283,60 @@ function Chromosome() {
 	this.r = 0;
 	this.g = 0;
 	this.b = 0;
+	this.a = 0.0;
 }
 
-Chromosome.prototype.randomizeGenes = function(genes) {
+Chromosome.prototype.handleSoftGeneMutate = function (val, isAlpha) {
+		var tempVal;
+		
+		if(!isAlpha) {
+			if(val + 2 <= 255 && val - 2 >= 0) {
+				tempVal = (randFloat(1.0) > .5) ? val+2 : val-2;
+			} else  {
+				tempVal = val;
+				if(val + 2 > 255) {
+					tempVal -= 2;
+				} else if(val - 2 < 0) {
+					tempVal += 2;		
+				}
+			}
+		} else {
+			if(val + 0.01 <= 1.0 && val - 0.01 >= 0) {
+				tempVal = (randFloat(1.0) > .5) ? val+0.01 : val-0.01;
+			} else  {
+				tempVal = val;
+				if(val + 0.01 > 1.0) {
+					tempVal -= 0.01;
+				} else if(val - 0.01 < 0) {
+					tempVal += 0.01;		
+				}	
+			}
+		}
+		
+		return tempVal;
+};
+	
+Chromosome.prototype.mutateGenes = function(genes, isHardMutate) {
 	switch(genes) {
-		case "r":
-			this.r = (Math.random() * 255 | 0);
+		case "red":
+			if(isHardMutate)
+				this.r = randInt(255);
+			else this.r = this.handleSoftGeneMutate(this.r, false);
 			break;
-		case "g":
-			this.g = (Math.random() * 255 | 0);
+		case "green":
+			if(isHardMutate)
+				this.g = randInt(255);
+			else this.g = this.handleSoftGeneMutate(this.g, false);
 			break;
-		case "b":
-			this.b = (Math.random() * 255 | 0);
+		case "blue":
+			if(isHardMutate)
+				this.b = randInt(255);
+			else this.b = this.handleSoftGeneMutate(this.b, false);
+			break;
+		case "alpha":
+			if(isHardMutate)
+				this.a = randFloat(1.0);
+			else this.a = this.handleSoftGeneMutate(this.a, true);
 			break;
 		case "pointsX":
 			this.pointsX.length = [];
@@ -230,10 +353,11 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
 			break;
 		case "all":
-			this.r = (Math.random() * 255 | 0);
-			this.g = (Math.random() * 255 | 0);
-			this.b = (Math.random() * 255 | 0);
-	
+			this.r = randInt(255);
+			this.g = randInt(255);
+			this.b = randInt(255);
+			this.a = randFloat(1.0);
+			
 			// clear the arrays
 			this.pointsX.length = [];
 			this.pointsY.length = [];
@@ -242,13 +366,14 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 				this.pointsX[i] = (Math.random() * IMAGE_WIDTH | 0);
 				this.pointsY[i] = (Math.random() * IMAGE_HEIGHT | 0);
 			}
-
+			
 			break;
 		case "test-only":
 			this.r = 255;
 			this.g = 255;
 			this.b = 255;
-	
+			this.a = 0.3;
+			
 			// clear the arrays
 			this.pointsX.length = [];
 			this.pointsY.length = [];
@@ -265,14 +390,15 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 }
 
 Chromosome.prototype.draw = function(context) {
-	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + ",0.3)";
+	
+	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + "," + this.a + ")";
 	
 	context.beginPath();
 	
-	context.moveTo(this.pointsX[0], this.pointsY[0]);
+	context.moveTo(this.pointsX[this.NUM_VERTICES - 1], this.pointsY[this.NUM_VERTICES - 1]);
 	
-	for (var i = 1; i < this.NUM_VERTICES - 1; i++){
-	  context.lineTo(this.pointsX[i], this.pointsY[i]);
+	for (var i = this.NUM_VERTICES - 2; i >= 0; i--){
+		context.lineTo(this.pointsX[i], this.pointsY[i]);
 	};
 	
 	context.closePath();
@@ -310,8 +436,20 @@ function changeSourceImage(url) {
 	img.src = url;
 	
 	img.onload = function() {
-		restartEvolution
+		pauseEvolution();
+		initImage();
+		initOrganisms();
+		IS_EVOLVING = false;
+		startPauseToggle.value = "Start evolution";
 	}
+}
+
+function randInt(seed) {
+	return (Math.random() * seed) | 0;
+}
+
+function randFloat(seed) {
+	return (Math.random() * seed);
 }
 
 function debug(s) {
