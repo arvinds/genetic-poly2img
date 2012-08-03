@@ -20,7 +20,7 @@
 
 
 var img = new Image();
-img.src = "../assets/chrome-logo.png";
+img.src = "../assets/chrome-logo.png"; //"../assets/mona-lisa.jpg"; 
 
 var IMAGE_HEIGHT = 0;
 var IMAGE_WIDTH = 0;
@@ -40,8 +40,13 @@ var LOG_WINDOW = null;
 
 var BEST_ORGANISM = null;
 var CURR_ORGANISM = null;
-var GENERATION_COUNT = -1;
-var MUTATION_LEVEL = null;
+
+var	BEST_FITNESS = 1.0;  // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
+var CURR_FITNESS = -1;
+
+var GENERATION_COUNT = 0;
+var MUTATION_LEVEL = "medium";
+var MUTATION_INDEX = -1;
 
 var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
@@ -83,12 +88,12 @@ function initImage() {
 
 function initOrganisms() {
 	BEST_ORGANISM = new Organism();
+	BEST_ORGANISM.initializeRandomGenome();
 	
 	CURR_ORGANISM = new Organism();
 	CURR_ORGANISM.initializeRandomGenome();
 	
-	GENERATION_COUNT = 0;
-	MUTATION_LEVEL = "medium";
+	Organism.doOrganismCopy(CURR_ORGANISM, BEST_ORGANISM);
 }
 
 function init() {
@@ -102,6 +107,11 @@ function startEvolution() {
 	IS_EVOLVING = true;
 	debug("starting evolution");
 	EVOLVE_INTERVAL_ID = setInterval("evolveOrganisms();", 0);
+	//setInterval("drawBest();", 50);
+}
+
+function drawBest() {
+	drawOrganism(BEST_ORGANISM, ctxBest);
 }
 
 function pauseEvolution() {
@@ -112,21 +122,28 @@ function pauseEvolution() {
 
 // ALGORITHM CORE FUNCTIONS
 function evolveOrganisms() {
+	CURR_ORGANISM.mutate(MUTATION_LEVEL);
 	drawOrganism(CURR_ORGANISM, ctxRlt);
-	calculateFitness(CURR_ORGANISM);
+	CURR_FITNESS = calculateFitness(CURR_ORGANISM);
 	
-	if(CURR_ORGANISM.fitness < BEST_ORGANISM.fitness) {
-		setFittestOrganism(CURR_ORGANISM);
-		debug("!!reached new best fitness: " + BEST_ORGANISM.fitness);
-	} else {
-		CURR_ORGANISM
-		CURR_ORGANISM.mutate(MUTATION_LEVEL);
-	}
+	//debug("curr fitness " + CURR_FITNESS);
+	
+	if(CURR_FITNESS < BEST_FITNESS) {
+		Organism.doChromosomeCopy(CURR_ORGANISM, BEST_ORGANISM, MUTATION_INDEX);
 
-	if(BEST_ORGANISM.fitness <= 0.25) {
+		BEST_FITNESS = CURR_FITNESS;
+
+		drawOrganism(BEST_ORGANISM, ctxBest);
+
+		debug("!!reached new best fitness: " + BEST_FITNESS);
+	} else {
+		Organism.doChromosomeCopy(BEST_ORGANISM, CURR_ORGANISM, MUTATION_INDEX);
+	}
+	
+	if(BEST_FITNESS <= 0.05) {
 		clearInterval(EVOLVE_INTERVAL_ID);
-		debug("!!reached optimum fitness " + BEST_ORGANISM.fitness);
-		alert("!!reached optimum fitness " + BEST_ORGANISM.fitness);
+		debug("!!reached optimum fitness " + BEST_FITNESS);
+		alert("!!reached optimum fitness " + BEST_FITNESS);
 		return;
 	}
 	
@@ -149,8 +166,12 @@ function calculateFitness(organism) {
 	var normalized_fitness = (((1-0) * (total_difference - RANGE_MIN)) / (RANGE_MAX - RANGE_MIN)) + 0;
 	//debug("normalized fitness: " + normalized_fitness);
 	
-	organism.fitness = normalized_fitness;
 	return normalized_fitness;
+}
+
+function drawOrganism(organism, context) {
+	clearCanvas(context);
+	organism.drawGenome(context);
 }
 
 function drawOrganism(organism, context) {
@@ -160,10 +181,41 @@ function drawOrganism(organism, context) {
 
 function Organism() {
 	this.chromosomes = [];
-	this.fitness = 1.0; // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
 }
 
 Organism.NUM_CHROMOSOMES = 50;
+
+Organism.doOrganismCopy = function(source, dest) {
+	for(var i = 0; i < Organism.NUM_CHROMOSOMES; i++) {
+		var srcChrome =  source.chromosomes[i];
+		var destChrome = dest.chromosomes[i];
+		
+		destChrome.r = srcChrome.r;
+		destChrome.g = srcChrome.g;
+		destChrome.b = srcChrome.b;
+		destChrome.a = srcChrome.a;
+
+		for(var j = 0; j < Chromosome.NUM_VERTICES; j++) {
+			destChrome.pointsX[j] = srcChrome.pointsX[j];
+			destChrome.pointsY[j] = srcChrome.pointsY[j];
+		}
+	}
+}
+
+Organism.doChromosomeCopy = function(source, dest, chromosomeIdx) {
+		var srcChrome = source.chromosomes[chromosomeIdx];
+		var destChrome = dest.chromosomes[chromosomeIdx];
+		
+		destChrome.r = srcChrome.r;
+		destChrome.g = srcChrome.g;
+		destChrome.b = srcChrome.b;
+		destChrome.a = srcChrome.a;
+
+		for(var i = 0; i < Chromosome.NUM_VERTICES; i++) {
+			destChrome.pointsX[i] = srcChrome.pointsX[i];
+			destChrome.pointsY[i] = srcChrome.pointsY[i];
+		}
+}
 
 Organism.prototype.initializeRandomGenome = function() {
 	for(var i = 0; i < Organism.NUM_CHROMOSOMES; i++) {
@@ -172,10 +224,12 @@ Organism.prototype.initializeRandomGenome = function() {
 	}
 }
 
+
 Organism.prototype.mutate = function(mutationLevel) {
-	var randChromosome = this.getRandomChromosome();
+	MUTATION_INDEX = randInt(this.chromosomes.length);
+	var randChromosome = this.chromosomes[MUTATION_INDEX];
 	var rouletteHit = randFloat(8.0);
-	
+
 	if(rouletteHit < 4.0) { // 50% chance of mutating polygon color
 		switch(mutationLevel) {
 			case "soft":
@@ -187,7 +241,7 @@ Organism.prototype.mutate = function(mutationLevel) {
 					randChromosome.randomizeGenes("green");
 				} else if(rouletteHit >= 2.0 && rouletteHit < 3.0) {
 					randChromosome.randomizeGenes("blue");
-				} else {
+				} else if(rouletteHit >= 3.0) {
 					randChromosome.randomizeGenes("alpha");
 				} 
 				break;
@@ -203,7 +257,7 @@ Organism.prototype.mutate = function(mutationLevel) {
 			case "medium":
 				if(rouletteHit < 6.0) {
 					randChromosome.randomizeGenes("pointsX");
-				} else {
+				} else if(rouletteHit >= 6.0 && rouletteHit < 8.0){
 					randChromosome.randomizeGenes("pointsY");
 				}
 				break;
@@ -213,10 +267,6 @@ Organism.prototype.mutate = function(mutationLevel) {
 				err("unrecognized mutation level: " + mutationLevel);
 		}
 	}
-}
-
-Organism.prototype.getRandomChromosome = function() {
-	return this.chromosomes[randInt(this.chromosomes.length)];
 }
 
 Organism.prototype.drawGenome = function(context) {
@@ -236,20 +286,6 @@ function Chromosome() {
 }
 
 Chromosome.NUM_VERTICES = 6;
-
-Chromosome.prototype.getClonedChromosome = function() {
-	var clonedChromosome = new Chromosome();
-	
-	clonedChromosome.r = Number(this.r);
-	clonedChromosome.g = Number(this.g);
-	clonedChromosome.b = Number(this.b);
-	clonedChromosome.a = Number(this.a);
-	
-	clonedChromosome.pointsX = this.pointsX.slice(0); // copy pointsX from end-to-end
-	clonedChromosome.pointsY = this.pointsY.slice(0); // copy pointsY from end-to-end
-	
-	return clonedChromosome;
-}
 
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
@@ -289,7 +325,7 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 			this.r = randInt(255);
 			this.g = randInt(255);
 			this.b = randInt(255);
-			this.a = randFloat(1.0);
+			this.a = 0.0;//randFloat(1.0);
 
 			this.pointsX.length = [];
 			this.pointsY.length = [];
@@ -322,12 +358,11 @@ Chromosome.prototype.randomizeGenes = function(genes) {
 
 Chromosome.prototype.draw = function(context) {
 	context.fillStyle = "rgba(" + this.r + "," + this.g + "," + this.b + "," + this.a + ")";
-	
 	context.beginPath();
 	
 	context.moveTo(this.pointsX[0], this.pointsY[0]);
 	
-	for (var i = 1; i < Chromosome.NUM_VERTICES - 1; i++){
+	for (var i = 1; i < Chromosome.NUM_VERTICES; i++){
 	  context.lineTo(this.pointsX[i], this.pointsY[i]);
 	};
 	
@@ -337,11 +372,6 @@ Chromosome.prototype.draw = function(context) {
 
 
 // UTILITY/CONVENIENCE/OTHER functions
-function setFittestOrganism(newBestOrganism) {
-	BEST_ORGANISM = newBestOrganism;
-	drawOrganism(BEST_ORGANISM, ctxBest);
-}
-
 function clearCanvas(context) {
 	context.clearRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 }
