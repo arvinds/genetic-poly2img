@@ -49,6 +49,7 @@ var MUTATION_COUNT = 0;
 var MUTATION_LEVEL = "medium";
 var MUTATION_INDEX = -1;
 
+var TIMER_INTERVAL_ID = null;
 var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
 
@@ -110,7 +111,7 @@ function startEvolution() {
 	IS_EVOLVING = true;
 	debug("starting evolution");
 	EVOLVE_INTERVAL_ID = setInterval("evolveOrganisms();", 0);
-	setInterval("SECOND_COUNT++;", 1000);
+	TIMER_INTERVAL_ID = setInterval("SECOND_COUNT++;", 1000);
 }
 
 function pauseEvolution() {
@@ -118,6 +119,7 @@ function pauseEvolution() {
 	debug("pausing evolution");
 	printStats();
 	clearInterval(EVOLVE_INTERVAL_ID);
+	clearInterval(TIMER_INTERVAL_ID);
 }
 
 // ALGORITHM CORE FUNCTIONS
@@ -284,7 +286,7 @@ function Chromosome() {
 	this.a = 0.0;
 }
 
-Chromosome.NUM_VERTICES = 10;
+Chromosome.NUM_VERTICES = 8;
 
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
