@@ -21,7 +21,7 @@
 //--------------V 1.0---------------//
 
 var img = new Image();
-img.src = "../assets/mona-lisa.jpg"; //"../assets/chrome-logo-large.png"; //"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
+img.src = "../assets/chrome-logo.png"; //"../assets/chrome-logo-large.png"; //"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
 
 var IMAGE_HEIGHT = 0;
 var IMAGE_WIDTH = 0;
