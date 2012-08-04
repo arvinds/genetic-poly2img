@@ -20,7 +20,7 @@
 
 
 var img = new Image();
-img.src = "../assets/chrome-logo.png"; //"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
+img.src = "../assets/mona-lisa.jpg"; //"../assets/chrome-logo-large.png"; //"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
 
 var IMAGE_HEIGHT = 0;
 var IMAGE_WIDTH = 0;
@@ -41,7 +41,7 @@ var LOG_WINDOW = null;
 var BEST_ORGANISM = null;
 var CURR_ORGANISM = null;
 
-var	BEST_FITNESS = 1.0;  // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
+var	BEST_FITNESS = 1.0;
 var CURR_FITNESS = 1.0;
 var GENERATION_COUNT = 0;
 
@@ -54,6 +54,7 @@ var EVOLVE_INTERVAL_ID = null;
 var IS_EVOLVING = false;
 
 var SECOND_COUNT = 0;
+var SAMPLE_RATE = 1;
 
 // INITIALIZATION FUNCTIONS
 function initCanvases() {
@@ -96,15 +97,28 @@ function initOrganisms() {
 	
 	CURR_ORGANISM = new Organism();
 	CURR_ORGANISM.initializeRandomGenome();
-	
+
 	Organism.doOrganismCopy(CURR_ORGANISM, BEST_ORGANISM);
 }
 
+function initOtherStuff() {
+	BEST_FITNESS = 1.0;  // fitness ranges between 0.0 and 1.0. lower values indicate a higher fitness. initialized to the least fit value, and should decrease with evolution
+	CURR_FITNESS = 1.0;
+	MUTATION_LEVEL = "medium";
+	
+	MUTATION_COUNT = 0;
+	GENERATION_COUNT = 0;
+	SECOND_COUNT = 0;
+}
+
 function init() {
-	LOG_WINDOW = document.getElementById("logWindow")
+	LOG_WINDOW = document.getElementById("logWindow");
+	raw("\nNUMBER OF POLYGONS USED: "+ Organism.NUM_CHROMOSOMES);
+	raw("NUMBER OF VERTICES PER POLYGON: "+ Chromosome.NUM_VERTICES);
 	initCanvases();
 	initImage();
 	initOrganisms();
+	initOtherStuff();
 }
 
 function startEvolution() {
@@ -140,7 +154,7 @@ function evolveOrganisms() {
 		Organism.doChromosomeCopy(BEST_ORGANISM, CURR_ORGANISM, MUTATION_INDEX);
 	}
 	
-	if(BEST_FITNESS <= 0.06) {
+	if(BEST_FITNESS <= 0.02) {
 		debug("!!reached optimum fitness");
 		alert("!!reached optimum fitness");
 		pauseEvolution();
@@ -151,17 +165,18 @@ function evolveOrganisms() {
 }
 
 function calculateFitness(organism) {
+	var ORIG_PIXELS_CACHE = ORIG_PIXELS; // declaring 
 	var draftData = ctxRlt.getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 	var draftPixels = new Uint32Array(draftData.data.length);
 	draftPixels.set(draftData.data);
 	
-	var RANGE_MAX = (256 * 4) * (IMAGE_HEIGHT * IMAGE_WIDTH); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
+	var RANGE_MAX = (256 * 4) * ((IMAGE_HEIGHT * IMAGE_WIDTH)/SAMPLE_RATE); // upper bound of difference between the current organism and the original organism (image) -- when the organisms are exactly different
 	var RANGE_MIN = 0; // lower bound of difference between the current organism and the original organism (image) -- when the organisms are exactly the same
 	
 	var total_difference = 0; // total difference of all corresponding pixels between original organism and current organism
 	
-	for(var a = 0, b = draftPixels.length; a < b; a++) {
-       total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS[a]);    // difference in RGBA components of the current pixel
+	for(var a = 0, b = draftPixels.length; a < b; a+=SAMPLE_RATE) {
+       total_difference += Math.abs(draftPixels[a] - ORIG_PIXELS_CACHE[a]);    // difference in RGBA components of the current pixel
 	};
 	
 	var normalized_fitness = (((1-0) * (total_difference - RANGE_MIN)) / (RANGE_MAX - RANGE_MIN)) + 0;
@@ -286,7 +301,7 @@ function Chromosome() {
 	this.a = 0.0;
 }
 
-Chromosome.NUM_VERTICES = 8;
+Chromosome.NUM_VERTICES = 6;
 
 Chromosome.prototype.randomizeGenes = function(genes) {
 	switch(genes) {
@@ -397,9 +412,7 @@ function changeSourceImage(url) {
 	img.src = url;
 	
 	img.onload = function() {
-		initImage();
-		initOrganisms();
-		startEvolution();
+		init();
 	}
 }
 
