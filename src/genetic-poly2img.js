@@ -18,6 +18,7 @@
  * @author: Ajay Gopinath <ajgopi124(at)gmail(dot)com>
  */
 
+//--------------V 1.0---------------//
 
 var img = new Image();
 img.src = "../assets/mona-lisa.jpg"; //"../assets/chrome-logo-large.png"; //"../assets/chrome-logo-small.png"; //"../assets/mona-lisa.jpg"; 
